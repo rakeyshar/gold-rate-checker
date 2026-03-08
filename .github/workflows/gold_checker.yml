@@ -1,0 +1,47 @@
+name: Hyderabad Gold Rate Checker
+
+on:
+  schedule:
+    # All times in UTC (IST = UTC + 5:30)
+    - cron: '30 4 * * 1-6'    # 10:00 AM IST  Mon–Sat
+    - cron: '30 7 * * 1-6'    # 01:00 PM IST  Mon–Sat
+    - cron: '30 11 * * 1-6'   # 05:00 PM IST  Mon–Sat
+
+  workflow_dispatch:            # Lets you run it manually from GitHub anytime
+
+jobs:
+  check-gold-rates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests schedule
+
+      - name: Run gold rate checker
+        env:
+          # ── Required ───────────────────────────────────
+          GOLDAPI_KEY:        ${{ secrets.GOLDAPI_KEY }}
+          WHATSAPP_PHONE_1:   ${{ secrets.WHATSAPP_PHONE_1 }}
+          WHATSAPP_API_KEY_1: ${{ secrets.WHATSAPP_API_KEY_1 }}
+
+          # ── Add more recipients below when ready ───────
+          # Just add the secrets in GitHub Settings first,
+          # then uncomment the lines below — no code changes needed!
+          #
+          # WHATSAPP_PHONE_2:   ${{ secrets.WHATSAPP_PHONE_2 }}
+          # WHATSAPP_API_KEY_2: ${{ secrets.WHATSAPP_API_KEY_2 }}
+          # WHATSAPP_NAME_2:    ${{ secrets.WHATSAPP_NAME_2 }}
+          #
+          # WHATSAPP_PHONE_3:   ${{ secrets.WHATSAPP_PHONE_3 }}
+          # WHATSAPP_API_KEY_3: ${{ secrets.WHATSAPP_API_KEY_3 }}
+          # WHATSAPP_NAME_3:    ${{ secrets.WHATSAPP_NAME_3 }}
+
+        run: python hyd_gold_checker.py --once
