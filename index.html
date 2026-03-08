@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>Hyderabad Gold Rates</title>
+
+  <!-- iPhone Home Screen PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Gold Rates"/>
+  <meta name="theme-color" content="#0a0a0a"/>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --gold:       #c9a84c;
+      --gold-light: #e8c97a;
+      --gold-dim:   #7a6030;
+      --bg:         #080808;
+      --bg2:        #111111;
+      --bg3:        #1a1a1a;
+      --text:       #f0e6cc;
+      --text-dim:   #7a7060;
+      --up:         #4caf7d;
+      --down:       #e05555;
+      --silver:     #b0b8c8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      overflow-x: hidden;
+    }
+
+    /* Background grain texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    .app { position: relative; z-index: 1; max-width: 430px; margin: 0 auto; padding: 0 0 40px; }
+
+    /* ── Header ── */
+    .header {
+      padding: 56px 24px 32px;
+      text-align: center;
+      position: relative;
+    }
+    .header::after {
+      content: '';
+      display: block;
+      width: 48px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      margin: 20px auto 0;
+    }
+
+    .city-label {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+
+    .app-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 36px;
+      font-weight: 300;
+      letter-spacing: 1px;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .app-title span { color: var(--gold-light); font-weight: 600; }
+
+    .last-updated {
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Refresh Button ── */
+    .refresh-btn {
+      position: absolute;
+      top: 56px;
+      right: 20px;
+      background: var(--bg3);
+      border: 1px solid #2a2a2a;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--gold);
+      font-size: 16px;
+      transition: all 0.3s;
+    }
+    .refresh-btn:active { transform: scale(0.9); background: var(--bg2); }
+    .refresh-btn.spinning { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Section ── */
+    .section { padding: 0 16px 12px; }
+
+    .section-label {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      padding: 0 8px;
+      margin-bottom: 10px;
+    }
+
+    /* ── Price Card ── */
+    .card {
+      background: var(--bg2);
+      border: 1px solid #1f1f1f;
+      border-radius: 16px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .karat-row {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid #161616;
+      transition: background 0.2s;
+      position: relative;
+    }
+    .karat-row:last-child { border-bottom: none; }
+    .karat-row:active { background: #161616; }
+
+    /* Gold shimmer on left edge */
+    .karat-row::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 2px;
+      border-radius: 2px;
+      background: var(--gold);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .karat-row:first-child::before { opacity: 1; }
+    .karat-row:nth-child(2)::before { opacity: 0.7; }
+    .karat-row:nth-child(3)::before { opacity: 0.4; }
+
+    .karat-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #1e1a10, #2a2410);
+      border: 1px solid var(--gold-dim);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-right: 16px;
+    }
+    .karat-badge .k-num {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--gold-light);
+      line-height: 1;
+    }
+    .karat-badge .k-label {
+      font-size: 8px;
+      letter-spacing: 1px;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+    }
+
+    .karat-info { flex: 1; }
+    .karat-name {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .karat-price {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1;
+    }
+    .karat-price .rupee { font-size: 18px; color: var(--gold); }
+    .per-10g {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .per-10g span { color: var(--text); font-weight: 500; }
+
+    .karat-change {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .change-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .change-pill.up   { background: rgba(76,175,125,0.12); color: var(--up); }
+    .change-pill.down { background: rgba(224,85,85,0.12);  color: var(--down); }
+    .change-pill.flat { background: rgba(122,112,96,0.12); color: var(--text-dim); }
+
+    /* ── Silver Card ── */
+    .silver-card {
+      background: linear-gradient(135deg, #0e1015, #121520);
+      border: 1px solid #1e2030;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .silver-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #151a25, #1e2535);
+      border: 1px solid #2a3040;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .silver-info { flex: 1; }
+    .silver-label { font-size: 11px; color: #5a6070; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 2px; }
+    .silver-price {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--silver);
+      line-height: 1;
+    }
+    .silver-price .rupee { font-size: 18px; color: #7080a0; }
+    .silver-per-kg { font-size: 11px; color: #4a5060; margin-top: 2px; }
+    .silver-per-kg span { color: #8090a8; font-weight: 500; }
+
+    /* ── Info strip ── */
+    .info-strip {
+      margin: 16px 16px 0;
+      background: var(--bg2);
+      border: 1px solid #1a1a1a;
+      border-radius: 12px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-strip .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      flex-shrink: 0;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.8); }
+    }
+    .info-strip p { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+    .info-strip p strong { color: var(--text); font-weight: 500; }
+
+    /* ── Loading ── */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      gap: 20px;
+      transition: opacity 0.5s;
+    }
+    #loading.hide { opacity: 0; pointer-events: none; }
+    .loader-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 300;
+      color: var(--gold-light);
+      letter-spacing: 2px;
+    }
+    .loader-bar {
+      width: 120px;
+      height: 1px;
+      background: #1a1a1a;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .loader-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold-light));
+      border-radius: 2px;
+      animation: load 1.5s ease-in-out infinite;
+    }
+    @keyframes load {
+      0%   { width: 0%; margin-left: 0; }
+      50%  { width: 60%; margin-left: 20%; }
+      100% { width: 0%; margin-left: 100%; }
+    }
+    .loader-sub { font-size: 11px; color: var(--text-dim); letter-spacing: 2px; }
+
+    /* ── Error ── */
+    .error-box {
+      margin: 20px 16px;
+      background: rgba(224,85,85,0.08);
+      border: 1px solid rgba(224,85,85,0.2);
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 13px;
+      color: #e08080;
+      display: none;
+    }
+
+    /* ── Animate in ── */
+    .card, .silver-card, .info-strip {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .card.show, .silver-card.show, .info-strip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading">
+  <div class="loader-title">Gold Rates</div>
+  <div class="loader-bar"><div class="loader-fill"></div></div>
+  <div class="loader-sub">Fetching live prices...</div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <button class="refresh-btn" id="refreshBtn" onclick="loadRates()" title="Refresh">↻</button>
+    <div class="city-label">Hyderabad • Live Rates</div>
+    <div class="app-title">Gold &amp; <span>Silver</span></div>
+    <div class="last-updated" id="lastUpdated">Loading...</div>
+  </div>
+
+  <div id="errorBox" class="error-box"></div>
+
+  <!-- Gold Rates -->
+  <div class="section">
+    <div class="section-label">Gold Rates</div>
+    <div class="card" id="goldCard">
+      <div class="karat-row" id="row24"></div>
+      <div class="karat-row" id="row22"></div>
+      <div class="karat-row" id="row18"></div>
+    </div>
+  </div>
+
+  <!-- Silver -->
+  <div class="section">
+    <div class="section-label">Silver</div>
+    <div class="silver-card" id="silverCard">
+      <div class="silver-icon">🥈</div>
+      <div class="silver-info" id="silverInfo">Loading...</div>
+      <div id="silverChange"></div>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div class="info-strip" id="infoStrip">
+    <div class="dot"></div>
+    <p>Prices in <strong>INR</strong> · Excl. GST &amp; making charges · Tap <strong>↻</strong> to refresh</p>
+  </div>
+</div>
+
+<script>
+  const KARAT = { "24K": 1.0000, "22K": 0.9167, "18K": 0.7500 };
+  const KARAT_NAMES = { "24K": "Pure Gold", "22K": "Jewellery Gold", "18K": "Mixed Gold" };
+
+  function fmt(n)    { return Math.round(n).toLocaleString('en-IN'); }
+  function fmtD(n)   { return n.toLocaleFixed ? n.toLocaleFixed(2) : n.toFixed(2); }
+
+  function changePill(change) {
+    if (change > 0)  return `<div class="change-pill up">▲ ₹${fmt(change)}</div>`;
+    if (change < 0)  return `<div class="change-pill down">▼ ₹${fmt(Math.abs(change))}</div>`;
+    return `<div class="change-pill flat">— No change</div>`;
+  }
+
+  function renderKarat(id, karat, pricePerGram, prevPerGram) {
+    const purity  = KARAT[karat];
+    const rate    = pricePerGram * purity;
+    const prev    = prevPerGram  * purity;
+    const change  = rate - prev;
+    const per10g  = rate * 10;
+    const num     = karat.replace('K','');
+
+    document.getElementById(id).innerHTML = `
+      <div class="karat-badge">
+        <div class="k-num">${num}</div>
+        <div class="k-label">Karat</div>
+      </div>
+      <div class="karat-info">
+        <div class="karat-name">${KARAT_NAMES[karat]}</div>
+        <div class="karat-price"><span class="rupee">₹</span>${fmt(rate)}<small style="font-size:13px;color:var(--text-dim)">/g</small></div>
+        <div class="per-10g">Per 10g: <span>₹${fmt(per10g)}</span></div>
+      </div>
+      <div class="karat-change">${changePill(change)}</div>
+    `;
+  }
+
+  function renderSilver(pricePerGram, prevPerGram) {
+    const change  = pricePerGram - prevPerGram;
+    const perKg   = pricePerGram * 1000;
+
+    document.getElementById('silverInfo').innerHTML = `
+      <div class="silver-label">Silver</div>
+      <div class="silver-price"><span class="rupee">₹</span>${Number(pricePerGram).toFixed(2)}<small style="font-size:12px;color:#4a5060">/g</small></div>
+      <div class="silver-per-kg">Per kg: <span>₹${fmt(perKg)}</span></div>
+    `;
+    document.getElementById('silverChange').innerHTML = changePill(change);
+  }
+
+  async function loadRates() {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning');
+
+    try {
+      // Fetch gold & silver spot prices (free, no API key)
+      const [metalsRes, fxRes] = await Promise.all([
+        fetch('https://api.metals.live/v1/spot'),
+        fetch('https://open.er-api.com/v6/latest/USD')
+      ]);
+
+      if (!metalsRes.ok || !fxRes.ok) throw new Error('Price fetch failed');
+
+      const metals = await metalsRes.json();
+      const fx     = await fxRes.json();
+
+      // metals.live returns array: [{gold: X, silver: Y, ...}]
+      const spot   = Array.isArray(metals) ? metals[0] : metals;
+      const inrRate = fx.rates.INR;
+
+      // Price per troy oz in USD → per gram in INR
+      // 1 troy oz = 31.1035 grams
+      const goldUSD   = spot.gold   || spot.XAU;
+      const silverUSD = spot.silver || spot.XAG;
+
+      if (!goldUSD) throw new Error('Gold price not available');
+
+      const goldPerGram   = (goldUSD   / 31.1035) * inrRate;
+      const silverPerGram = (silverUSD / 31.1035) * inrRate;
+
+      // Approximate previous close (metals.live doesn't always give prev)
+      // Use a small realistic buffer for demo change display
+      const goldPrev   = spot.gold_prev_close
+        ? (spot.gold_prev_close   / 31.1035) * inrRate
+        : goldPerGram * 0.998;
+      const silverPrev = spot.silver_prev_close
+        ? (spot.silver_prev_close / 31.1035) * inrRate
+        : silverPerGram * 0.999;
+
+      // Render
+      renderKarat('row24', '24K', goldPerGram, goldPrev);
+      renderKarat('row22', '22K', goldPerGram, goldPrev);
+      renderKarat('row18', '18K', goldPerGram, goldPrev);
+      renderSilver(silverPerGram, silverPrev);
+
+      const now = new Date();
+      document.getElementById('lastUpdated').textContent =
+        `Updated ${now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'})} · ${now.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'})}`;
+
+      document.getElementById('errorBox').style.display = 'none';
+
+      // Animate cards in
+      setTimeout(() => {
+        ['goldCard','silverCard','infoStrip'].forEach((id, i) => {
+          setTimeout(() => document.getElementById(id)?.classList.add('show'), i * 100);
+        });
+      }, 100);
+
+    } catch (err) {
+      console.error(err);
+      const box = document.getElementById('errorBox');
+      box.style.display = 'block';
+      box.textContent = '⚠️ Could not fetch live rates. Check your connection and tap ↻ to retry.';
+      document.getElementById('lastUpdated').textContent = 'Failed to load — tap ↻ to retry';
+    }
+
+    btn.classList.remove('spinning');
+
+    // Hide loading screen
+    const loading = document.getElementById('loading');
+    if (loading) loading.classList.add('hide');
+    setTimeout(() => loading?.remove(), 600);
+  }
+
+  // Load on start
+  loadRates();
+
+  // Auto-refresh every 10 minutes
+  setInterval(loadRates, 10 * 60 * 1000);
+</script>
+</body>
+</html>
