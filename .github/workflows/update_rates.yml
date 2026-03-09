@@ -1,0 +1,81 @@
+name: Update Gold Rates
+
+on:
+  schedule:
+    - cron: '30 4 * * 1-6'    # 10:00 AM IST  Mon–Sat
+    - cron: '30 7 * * 1-6'    # 01:00 PM IST  Mon–Sat
+    - cron: '30 11 * * 1-6'   # 05:00 PM IST  Mon–Sat
+  workflow_dispatch:            # Run manually anytime
+
+jobs:
+  update-rates:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write           # Needed to push rates.json to repo
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Fetch gold & silver rates and save to rates.json
+        env:
+          GOLDAPI_KEY: ${{ secrets.GOLDAPI_KEY }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, urllib.request, datetime, os, sys
+
+          key = os.environ.get("GOLDAPI_KEY", "")
+          if not key:
+              print("ERROR: GOLDAPI_KEY secret not set")
+              sys.exit(1)
+
+          TROY = 31.1035
+          GOLD_PREMIUM   = 1.069
+          SILVER_PREMIUM = 1.055
+
+          def fetch(metal):
+              url = f"https://www.goldapi.io/api/{metal}/INR"
+              req = urllib.request.Request(url, headers={
+                  "x-access-token": key,
+                  "Content-Type": "application/json"
+              })
+              with urllib.request.urlopen(req, timeout=20) as r:
+                  return json.loads(r.read())
+
+          print("Fetching gold...")
+          gold = fetch("XAU")
+          print("Fetching silver...")
+          silver = fetch("XAG")
+
+          gold_per_gram      = (gold["price"]                                         / TROY) * GOLD_PREMIUM
+          gold_prev_per_gram = (gold.get("prev_close_price", gold["price"])           / TROY) * GOLD_PREMIUM
+          silver_per_gram    = (silver["price"]                                       / TROY) * SILVER_PREMIUM
+          silver_prev_per_gram = (silver.get("prev_close_price", silver["price"])     / TROY) * SILVER_PREMIUM
+
+          now_ist = datetime.datetime.utcnow() + datetime.timedelta(hours=5, minutes=30)
+
+          rates = {
+              "updated_at":   now_ist.strftime("%d %b %Y, %I:%M %p IST"),
+              "updated_ts":   now_ist.isoformat(),
+              "gold_per_gram":        round(gold_per_gram, 2),
+              "gold_prev_per_gram":   round(gold_prev_per_gram, 2),
+              "silver_per_gram":      round(silver_per_gram, 2),
+              "silver_prev_per_gram": round(silver_prev_per_gram, 2),
+          }
+
+          with open("rates.json", "w") as f:
+              json.dump(rates, f, indent=2)
+
+          print(f"Saved rates.json:")
+          print(f"  Gold:   Rs{gold_per_gram:.2f}/g")
+          print(f"  Silver: Rs{silver_per_gram:.2f}/g")
+          print(f"  Time:   {rates['updated_at']}")
+          PYEOF
+
+      - name: Commit and push rates.json
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add rates.json
+          git diff --staged --quiet || git commit -m "Update gold rates $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
