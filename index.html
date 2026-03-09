@@ -41,53 +41,7 @@
 
     .app { position:relative; z-index:1; max-width:430px; margin:0 auto; padding:0 0 48px; }
 
-    /* ── Setup Screen ── */
-    #setupScreen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 32px 24px;
-      text-align: center;
-    }
-    #setupScreen h1 {
-      font-family: 'Cormorant Garamond', serif;
-      font-size: 32px;
-      font-weight: 300;
-      color: var(--gold-light);
-      margin-bottom: 8px;
-    }
-    #setupScreen p { font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 24px; }
-    #setupScreen a { color: var(--gold); }
-    .setup-input {
-      width: 100%;
-      background: var(--bg2);
-      border: 1px solid #2a2a2a;
-      border-radius: 12px;
-      padding: 14px 16px;
-      color: var(--text);
-      font-size: 14px;
-      font-family: monospace;
-      outline: none;
-      margin-bottom: 12px;
-    }
-    .setup-input:focus { border-color: var(--gold-dim); }
-    .setup-btn {
-      width: 100%;
-      background: linear-gradient(135deg, #2a2010, #3a3015);
-      border: 1px solid var(--gold-dim);
-      border-radius: 12px;
-      padding: 14px;
-      color: var(--gold-light);
-      font-size: 15px;
-      font-family: 'DM Sans', sans-serif;
-      font-weight: 500;
-      cursor: pointer;
-      letter-spacing: 0.5px;
-    }
-    .setup-btn:active { opacity: 0.8; }
-    .setup-note { font-size: 11px; color: var(--text-dim); margin-top: 16px; line-height: 1.6; }
+    
 
     /* ── Header ── */
     .header { padding: 56px 24px 28px; text-align:center; position:relative; }
@@ -221,19 +175,6 @@
   <div class="loader-sub">Fetching live prices...</div>
 </div>
 
-<!-- Setup screen (shown if no API key saved) -->
-<div id="setupScreen" style="display:none">
-  <div style="font-size:36px;margin-bottom:16px">🥇</div>
-  <h1>Hyderabad Gold Rates</h1>
-  <p>Enter your free <strong style="color:var(--gold)">GoldAPI.io</strong> key to get started.<br/>
-     Don't have one? Get it free at<br/>
-     <a href="https://www.goldapi.io" target="_blank">goldapi.io</a> — no credit card needed.
-  </p>
-  <input class="setup-input" id="apiKeyInput" type="text" placeholder="goldapi-xxxxxxxxxxxxxxx" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false"/>
-  <button class="setup-btn" onclick="saveKey()">✓ Save &amp; Load Rates</button>
-  <p class="setup-note">Your key is saved only on this device.<br/>It is never shared with anyone.</p>
-</div>
-
 <!-- Main App -->
 <div class="app" id="mainApp" style="display:none">
   <div class="header">
@@ -267,34 +208,20 @@
     <div class="dot"></div>
     <p>Prices in <strong>INR</strong> · Excl. GST &amp; making charges · Tap <strong>↻</strong> to refresh</p>
   </div>
-
-  <button class="change-key-btn" onclick="changeKey()">Change API Key</button>
 </div>
 
 <script>
   const KARAT_PURITY = { "24K": 1.0000, "22K": 0.9167, "18K": 0.7500 };
   const KARAT_NAMES  = { "24K": "Pure Gold", "22K": "Jewellery Gold", "18K": "Mixed Gold" };
   const TROY_OZ_TO_GRAM = 31.1035;
-  const STORAGE_KEY = "hyd_gold_api_key";
+  // ═══════════════════════════════
+  // 👇 PASTE YOUR GOLDAPI KEY HERE
+  const GOLDAPI_KEY = "goldapi-nf7smmi7uwr0-io";
+  // ═══════════════════════════════
 
-  function getKey()       { return localStorage.getItem(STORAGE_KEY) || ""; }
-  function saveKey() {
-    const k = document.getElementById('apiKeyInput').value.trim();
-    if (!k) { alert("Please enter your GoldAPI key"); return; }
-    localStorage.setItem(STORAGE_KEY, k);
-    showMain();
-    loadRates();
-  }
-  function changeKey() {
-    localStorage.removeItem(STORAGE_KEY);
-    document.getElementById('mainApp').style.display = 'none';
-    document.getElementById('setupScreen').style.display = 'flex';
-  }
 
-  function showMain() {
-    document.getElementById('setupScreen').style.display = 'none';
-    document.getElementById('mainApp').style.display = 'block';
-  }
+
+  function showMain() { document.getElementById('mainApp').style.display = 'block'; }
 
   function fmt(n)  { return Math.round(n).toLocaleString('en-IN'); }
   function fmtD(n) { return Number(n).toFixed(2); }
@@ -343,8 +270,12 @@
   }
 
   async function loadRates() {
-    const apiKey = getKey();
-    if (!apiKey) return;
+    const apiKey = GOLDAPI_KEY;
+    if (!apiKey || apiKey === 'YOUR_GOLDAPI_KEY_HERE') {
+      document.getElementById('errorBox').style.display = 'block';
+      document.getElementById('errorBox').textContent = '⚠️ Please add your GoldAPI key in the index.html file.';
+      return;
+    }
 
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('spinning');
@@ -392,21 +323,12 @@
 
   // ── Init ──
   window.addEventListener('load', () => {
-    const key = getKey();
-    if (key) {
-      showMain();
-      loadRates();
-    } else {
-      document.getElementById('loading').classList.add('hide');
-      setTimeout(() => {
-        document.getElementById('loading').remove();
-        document.getElementById('setupScreen').style.display = 'flex';
-      }, 600);
-    }
+    showMain();
+    loadRates();
   });
 
   // Auto-refresh every 10 minutes
-  setInterval(() => { if (getKey()) loadRates(); }, 10 * 60 * 1000);
+  setInterval(loadRates, 10 * 60 * 1000);
 </script>
 </body>
 </html>
