@@ -265,6 +265,7 @@
     <div class="brand-sub">Gold &amp; Silver Rates</div>
     <div class="divider"><div class="divider-line"></div><div class="divider-diamond"></div><div class="divider-line"></div></div>
     <div class="city-time">Hyderabad &nbsp;·&nbsp; <span id="liveTime">--:--</span> &nbsp;·&nbsp; <span id="liveDate">--</span></div>
+    <div id="liveUpdated" style="font-size:10px;color:var(--dim);text-align:center;padding-bottom:4px;letter-spacing:0.5px;"></div>
   </div>
 
   <div id="errorBox" class="error-box"></div>
@@ -327,13 +328,9 @@
 
 <script>
   // ═══════════════════════════════════════════════════
-  const GOLDAPI_KEY     = "goldapi-nf7smmi7uwr0-io";
-  const TROY_OZ_TO_GRAM = 31.1035;
-  // India adds customs duty + AIDC levy + local dealer premium
-  // Gold: ~6.9% over international spot (verified vs IBJA benchmark)
-  // Silver: ~5.5% over international spot (slightly lower duty)
-  const GOLD_PREMIUM   = 1.069;
-  const SILVER_PREMIUM = 1.055;
+  // Reads from rates.json — updated 3x/day by GitHub Actions
+  // No API calls from browser — unlimited users, no rate limits!
+  const RATES_URL = "rates.json";
   // ═══════════════════════════════════════════════════
 
   const KARATS = [
@@ -455,37 +452,28 @@
       now.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
   }
 
-  // ── Load rates ──
+  // ── Load rates from cached rates.json ──
   async function loadRates() {
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('spinning');
     document.getElementById('errorBox').style.display = 'none';
 
     try {
-      const headers = { 'x-access-token': GOLDAPI_KEY, 'Content-Type': 'application/json' };
-      const [goldRes, silverRes] = await Promise.all([
-        fetch('https://www.goldapi.io/api/XAU/INR', { headers }),
-        fetch('https://www.goldapi.io/api/XAG/INR', { headers }),
-      ]);
+      // Add cache-busting so browser always gets fresh rates.json
+      const res = await fetch(RATES_URL + '?v=' + Date.now());
+      if (!res.ok) throw new Error(`Could not load rates.json: ${res.status}`);
+      const r = await res.json();
 
-      if (!goldRes.ok)   throw new Error(`Gold: ${goldRes.status}`);
-      if (!silverRes.ok) throw new Error(`Silver: ${silverRes.status}`);
+      renderGold(r.gold_per_gram, r.gold_prev_per_gram);
+      renderSilver(r.silver_per_gram, r.silver_prev_per_gram);
 
-      const gold   = await goldRes.json();
-      const silver = await silverRes.json();
-
-      const goldPerGram    = (gold.price   / TROY_OZ_TO_GRAM) * GOLD_PREMIUM;
-      const goldPrevGram   = ((gold.prev_close_price   || gold.price)   / TROY_OZ_TO_GRAM) * GOLD_PREMIUM;
-      const silverPerGram  = (silver.price / TROY_OZ_TO_GRAM) * SILVER_PREMIUM;
-      const silverPrevGram = ((silver.prev_close_price || silver.price) / TROY_OZ_TO_GRAM) * SILVER_PREMIUM;
-
-      renderGold(goldPerGram, goldPrevGram);
-      renderSilver(silverPerGram, silverPrevGram);
+      // Show when rates were last fetched by GitHub Actions
+      document.getElementById('liveUpdated').textContent = 'Rates as of: ' + r.updated_at;
 
     } catch (err) {
       console.error(err);
       document.getElementById('errorBox').style.display = 'block';
-      document.getElementById('errorBox').textContent = '⚠️ Could not fetch rates. Check your connection and tap ↻ to retry.';
+      document.getElementById('errorBox').textContent = '⚠️ Could not load rates. Try refreshing in a moment.';
     }
 
     btn.classList.remove('spinning');
